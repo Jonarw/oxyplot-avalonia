@@ -117,7 +117,15 @@ namespace OxyPlot.Avalonia
         /// <param name="updateData">The update Data.</param>
         public virtual void InvalidatePlot(bool updateData = true)
         {
-            this.isUpdateRequired = updateData ? 2 : 1;
+            if (updateData)
+            {
+                this.isUpdateRequired = 2;
+            }
+            else
+            {
+                // only write 1 if current value is 0, so we don't overwrite a 2
+                Interlocked.CompareExchange(ref this.isUpdateRequired, 1, 0);
+            }
         }
 
         /// <summary>
