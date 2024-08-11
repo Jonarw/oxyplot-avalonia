@@ -1,9 +1,9 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="MainViewModel.cs" company="OxyPlot">
+// <copyright file="Category.cs" company="OxyPlot">
 //   Copyright (c) 2014 OxyPlot contributors
 // </copyright>
 // <summary>
-//   Represents the view-model for the main window.
+//   Represents a category of examples.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
