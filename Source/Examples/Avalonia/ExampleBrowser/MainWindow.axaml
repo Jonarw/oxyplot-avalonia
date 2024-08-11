@@ -44,11 +44,7 @@
           </ItemsControl.DataTemplates>
         </ItemsControl>
       </ScrollViewer>
-      <Grid Grid.Column="1">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="*" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+      <Grid Grid.Column="1" RowDefinitions="*,auto">
         <oxy:PlotView Model="{Binding CanvasModel}" IsVisible="{Binding CanvasModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
         <oxySkia:PlotView Model="{Binding SkiaSharpModel}" IsVisible="{Binding SkiaSharpModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
         <oxySkiaDb:PlotView Model="{Binding SkiaSharpDoubleBufferedModel}" IsVisible="{Binding SkiaSharpDoubleBufferedModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
