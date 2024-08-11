@@ -33,7 +33,7 @@ namespace OxyPlot.Avalonia
         protected const string PartPanel = "PART_Panel";
 
         /// <summary>
-        /// Invalidation flag (0: no update, 1: update, 2: update date).
+        /// Invalidation flag (0: no update, 1: update, 2: update data).
         /// </summary>
         protected internal int isUpdateRequired;
 
