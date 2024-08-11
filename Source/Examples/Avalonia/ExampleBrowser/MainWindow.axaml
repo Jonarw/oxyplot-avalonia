@@ -14,10 +14,6 @@
       <exampleBrowser:MainViewModel />
     </Window.DataContext>
 
-    <Window.Resources>
-        <exampleBrowser:NotNullBooleanConverter x:Key="NotNullBooleanConverter" />
-    </Window.Resources>
-  
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="1*" />
@@ -53,9 +49,9 @@
           <RowDefinition Height="*" />
           <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <oxy:PlotView Model="{Binding CanvasModel}" IsVisible="{Binding CanvasModel, Converter={StaticResource NotNullBooleanConverter}}" />
-        <oxySkia:PlotView Model="{Binding SkiaSharpModel}" IsVisible="{Binding SkiaSharpModel, Converter={StaticResource NotNullBooleanConverter}}" />
-        <oxySkiaDb:PlotView Model="{Binding SkiaSharpDoubleBufferedModel}" IsVisible="{Binding SkiaSharpDoubleBufferedModel, Converter={StaticResource NotNullBooleanConverter}}" />
+        <oxy:PlotView Model="{Binding CanvasModel}" IsVisible="{Binding CanvasModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <oxySkia:PlotView Model="{Binding SkiaSharpModel}" IsVisible="{Binding SkiaSharpModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <oxySkiaDb:PlotView Model="{Binding SkiaSharpDoubleBufferedModel}" IsVisible="{Binding SkiaSharpDoubleBufferedModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
         <StackPanel Orientation="Horizontal" Grid.Row="1">
           <TextBlock Text="Renderer:" VerticalAlignment="Center" Margin="5" />
           <ComboBox ItemsSource="{Binding Renderers}" SelectedItem="{Binding SelectedRenderer}" />
