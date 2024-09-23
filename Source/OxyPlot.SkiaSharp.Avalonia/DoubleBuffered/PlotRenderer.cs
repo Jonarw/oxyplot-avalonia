@@ -20,8 +20,8 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
         private SKBitmap frontBuffer;
         private SKBitmap backBuffer;
         private CancellationTokenSource renderCancellationTokenSource;
-        private readonly AutoResetEvent renderRequiredEvent = new(false);
-        private readonly Mutex renderLoopMutex = new();
+        private readonly SemaphoreSlim renderRequiredEvent = new(0);
+        private readonly SemaphoreSlim renderLoopMutex = new(1, 1);
 
         public PlotView PlotView { get; } = parent;
 
@@ -30,7 +30,7 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
         /// </summary>
         public void RequestRender()
         {
-            this.renderRequiredEvent.Set();
+            this.renderRequiredEvent.Release();
         }
 
         /// <inheritdoc />
@@ -84,35 +84,43 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
         /// <summary>
         /// This loop runs until canceled and updates and renders the plot if required.
         /// </summary>
-        private void RenderLoop(CancellationToken cancellationToken)
+        private async Task RenderLoopAsync(CancellationToken cancellationToken)
         {
             while (true)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                this.renderRequiredEvent.WaitOne();
-                cancellationToken.ThrowIfCancellationRequested();
+                await this.renderRequiredEvent.WaitAsync(cancellationToken);
+                while (this.renderRequiredEvent.CurrentCount > 0)
+                {
+                    await this.renderRequiredEvent.WaitAsync(cancellationToken);
+                }
+
                 var size = this.Bounds.Size;
 
                 if (size.Width > 0 && size.Height > 0 && this.PlotView.ActualModel is PlotModel plotModel)
                 {
                     var isUpdateRequired = Interlocked.Exchange(ref this.PlotView.isUpdateRequired, 0);
                     var iPlotModel = (IPlotModel)plotModel;
-                    if (isUpdateRequired > 0)
+
+                    // plot update and render might be CPU-intensive, so run it on a background thread
+                    await Task.Run(() =>
                     {
-                        lock (plotModel.SyncRoot)
+                        if (isUpdateRequired > 0)
                         {
-                            iPlotModel.Update(isUpdateRequired > 1);
-                            cancellationToken.ThrowIfCancellationRequested();
-                            this.Render(iPlotModel, size);
+                            lock (plotModel.SyncRoot)
+                            {
+                                iPlotModel.Update(isUpdateRequired > 1);
+                                cancellationToken.ThrowIfCancellationRequested();
+                                this.Render(iPlotModel, size);
+                            }
                         }
-                    }
-                    else if (Interlocked.Exchange(ref this.PlotView.isRenderRequired, 0) == 1)
-                    {
-                        lock (plotModel.SyncRoot)
+                        else if (Interlocked.Exchange(ref this.PlotView.isRenderRequired, 0) == 1)
                         {
-                            this.Render(iPlotModel, size);
+                            lock (plotModel.SyncRoot)
+                            {
+                                this.Render(iPlotModel, size);
+                            }
                         }
-                    }
+                    }, cancellationToken);
                 }
             }
         }
@@ -137,7 +145,19 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnAttachedToVisualTree(e);
-            this.StartRenderLoop();
+            WaitAndRethrow(this.StartRenderLoopAsync());
+        }
+
+        private static async void WaitAndRethrow(Task task)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         /// <inheritdoc />
@@ -147,33 +167,30 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
             this.StopRenderLoop();
         }
 
-        private void StartRenderLoop()
+        private async Task StartRenderLoopAsync()
         {
-            new Task(() =>
-            {
-                this.renderLoopMutex.WaitOne();
-                this.renderException = null;
-                this.renderCancellationTokenSource = new CancellationTokenSource();
+            await this.renderLoopMutex.WaitAsync();
+            this.renderException = null;
+            this.renderCancellationTokenSource = new CancellationTokenSource();
 
-                try
-                {
-                    this.RenderLoop(this.renderCancellationTokenSource.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (Exception e)
-                {
-                    this.renderException = e;
-                }
-                finally
-                {
-                    this.backBuffer?.Dispose();
-                    this.frontBuffer?.Dispose();
-                    this.frontBuffer = this.backBuffer = null;
-                    this.renderLoopMutex.ReleaseMutex();
-                }
-            }, TaskCreationOptions.LongRunning).Start();
+            try
+            {
+                await this.RenderLoopAsync(this.renderCancellationTokenSource.Token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                this.renderException = e;
+            }
+            finally
+            {
+                this.backBuffer?.Dispose();
+                this.frontBuffer?.Dispose();
+                this.frontBuffer = this.backBuffer = null;
+                this.renderLoopMutex.Release();
+            }
         }
 
         private void StopRenderLoop()
@@ -189,11 +206,8 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
             // First stop the render loop
             this.StopRenderLoop();
 
-            // release renderRequiredEvent once more in case the render loop currently is waiting for the mutex; otherwise it might wait forever and will not be canceled
-            this.RequestRender();
-
             // wait until renderLoopMutex is free -> this means the render loop has terminated
-            this.renderLoopMutex.WaitOne();
+            this.renderLoopMutex.Wait();
 
             // the buffers should be disposed at this point, but let's make sure
             this.backBuffer?.Dispose();
