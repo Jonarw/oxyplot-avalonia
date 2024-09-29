@@ -15,7 +15,8 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
         public override void InvalidatePlot(bool updateData = true)
         {
             base.InvalidatePlot(updateData);
-            // Update is done on the render thread, so it doesn't block the UI Thread
+            // At this point we only notify PlotRenderer that an update needs to be done.
+            // Plot update and/or rendering will be done by PlotRenderer on a background thread as necessary. 
             this.plotRenderer.RequestRender();
         }
 

@@ -54,11 +54,16 @@ namespace OxyPlot.Avalonia
         public override void InvalidatePlot(bool updateData = true)
         {
             base.InvalidatePlot(updateData);
-            // do plot update on the UI Thread, but with 'Background' priority, so it doesn't block UI
+            // do plot update on the UI Thread
             Dispatcher.UIThread.InvokeAsync(() => 
             {
-                this.UpdatePlot();
-                this.InvalidateArrange(); 
+                this.UpdatePlotIfRequired();
+
+                // this check prevents us from calling InvalidateArrange multiple times when the plot is invalidated in quick succession
+                if (Interlocked.Exchange(ref this.isRenderRequired, 1) == 0)
+                {
+                    this.InvalidateArrange();
+                }
             }, DispatcherPriority.Background);
         }
 
@@ -68,7 +73,10 @@ namespace OxyPlot.Avalonia
             var actualSize = base.ArrangeOverride(finalSize);
             if (actualSize.Width > 0 && actualSize.Height > 0)
             {
-                this.UpdateVisuals();
+                if (Interlocked.Exchange(ref this.isRenderRequired, 0) == 1)
+                {
+                    this.UpdateVisuals();
+                }
             }
 
             return actualSize;

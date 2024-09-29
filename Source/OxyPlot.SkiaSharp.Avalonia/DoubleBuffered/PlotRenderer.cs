@@ -96,31 +96,23 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
 
                 var size = this.Bounds.Size;
 
-                if (size.Width > 0 && size.Height > 0 && this.PlotView.ActualModel is PlotModel plotModel)
-                {
-                    var isUpdateRequired = Interlocked.Exchange(ref this.PlotView.isUpdateRequired, 0);
-                    var iPlotModel = (IPlotModel)plotModel;
+                if (size.Width > 0 && size.Height > 0 && this.PlotView.ActualModel is PlotModel plotModel)                {
 
-                    // plot update and render might be CPU-intensive, so run it on a background thread
-                    await Task.Run(() =>
+                    var isUpdateRequired = Interlocked.Exchange(ref this.PlotView.isUpdateRequired, 0);
+                    if (isUpdateRequired > 0)
                     {
-                        if (isUpdateRequired > 0)
+                        // plot update and render might be CPU-intensive, so run it on a background thread
+                        await Task.Run(() =>
                         {
                             lock (plotModel.SyncRoot)
                             {
+                                var iPlotModel = (IPlotModel)plotModel;
                                 iPlotModel.Update(isUpdateRequired > 1);
                                 cancellationToken.ThrowIfCancellationRequested();
                                 this.Render(iPlotModel, size);
                             }
-                        }
-                        else if (Interlocked.Exchange(ref this.PlotView.isRenderRequired, 0) == 1)
-                        {
-                            lock (plotModel.SyncRoot)
-                            {
-                                this.Render(iPlotModel, size);
-                            }
-                        }
-                    }, cancellationToken);
+                        }, cancellationToken);
+                    }
                 }
             }
         }

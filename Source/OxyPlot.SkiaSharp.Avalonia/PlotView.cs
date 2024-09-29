@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using OxyPlot.Avalonia;
+using System.Threading;
 
 namespace OxyPlot.SkiaSharp.Avalonia
 {
@@ -17,11 +18,17 @@ namespace OxyPlot.SkiaSharp.Avalonia
         {
             base.InvalidatePlot(updateData);
 
-            // do plot update on the UI Thread, but with 'Background' priority, so it doesn't block UI
+            // do plot update on the UI Thread
             Dispatcher.UIThread.InvokeAsync(() =>
             {
-                this.UpdatePlot();
-                this.plotRenderer.InvalidateVisual();
+                this.UpdatePlotIfRequired();
+                // this check prevents us from calling InvalidateVisual multiple times when the plot is invalidated in quick succession
+                // InvalidateVisual will eventually cause PlotRenderer.Render to be executed 
+                if (Interlocked.Exchange(ref this.isRenderRequired, 1) == 0)
+                {
+                    this.plotRenderer.InvalidateVisual();
+                }
+
             }, DispatcherPriority.Background);
         }
 

@@ -213,7 +213,7 @@ namespace OxyPlot.Avalonia
             }
         }
 
-        protected void UpdatePlot()
+        protected void UpdatePlotIfRequired()
         {
             if (this.ActualModel is PlotModel plotModel)
             {

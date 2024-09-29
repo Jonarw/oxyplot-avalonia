@@ -42,6 +42,7 @@ namespace OxyPlot.SkiaSharp.Avalonia
                             canvas.Clear(plotModel.Background.ToSKColor());
                         }    
 
+                        this.Parent.PlotView.isRenderRequired = 0;
                         ((IPlotModel)plotModel).Render(this.Parent.renderContext, this.Bounds.ToOxyRect());
                     }
                 }
