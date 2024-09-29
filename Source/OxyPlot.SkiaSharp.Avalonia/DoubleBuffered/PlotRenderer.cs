@@ -7,6 +7,7 @@ using OxyPlot.Avalonia;
 using SkiaSharp;
 using System;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -96,8 +97,8 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
 
                 var size = this.Bounds.Size;
 
-                if (size.Width > 0 && size.Height > 0 && this.PlotView.ActualModel is PlotModel plotModel)                {
-
+                if (size.Width > 0 && size.Height > 0 && this.PlotView.ActualModel is PlotModel plotModel)                
+                {
                     var isUpdateRequired = Interlocked.Exchange(ref this.PlotView.isUpdateRequired, 0);
                     if (isUpdateRequired > 0)
                     {
@@ -137,19 +138,10 @@ namespace OxyPlot.SkiaSharp.Avalonia.DoubleBuffered
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnAttachedToVisualTree(e);
-            WaitAndRethrow(this.StartRenderLoopAsync());
-        }
 
-        private static async void WaitAndRethrow(Task task)
-        {
-            try
-            {
-                await task;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            // We deliberately just 'fire and forget' the render loop. It will run forever until canceled via renderCancellationTokenSource.
+            // Potential exceptions are stored in renderException.
+            _ = this.StartRenderLoopAsync();
         }
 
         /// <inheritdoc />
