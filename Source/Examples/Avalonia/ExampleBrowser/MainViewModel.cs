@@ -83,6 +83,7 @@ namespace ExampleBrowser
 
         public PlotModel SkiaSharpModel => this.SelectedRenderer == Renderer.SkiaSharp ? this.model : null;
         public PlotModel SkiaSharpDoubleBufferedModel => this.SelectedRenderer == Renderer.SkiaSharpDoubleBuffered ? this.model : null;
+        public PlotModel SkiaSharpPictureRecorderModel => this.SelectedRenderer == Renderer.SkiaSharpRecorder ? this.model : null;
 
         public void ChangeExample(ExampleInfo example)
         {
@@ -97,6 +98,7 @@ namespace ExampleBrowser
             this.OnPropertyChanged(nameof(this.CanvasModel));
             this.OnPropertyChanged(nameof(this.SkiaSharpModel));
             this.OnPropertyChanged(nameof(this.SkiaSharpDoubleBufferedModel));
+            this.OnPropertyChanged(nameof(this.SkiaSharpPictureRecorderModel));
         }
 
         private void CoerceExample()
@@ -106,6 +108,7 @@ namespace ExampleBrowser
             this.OnPropertyChanged(nameof(this.CanvasModel));
             this.OnPropertyChanged(nameof(this.SkiaSharpModel));
             this.OnPropertyChanged(nameof(this.SkiaSharpDoubleBufferedModel));
+            this.OnPropertyChanged(nameof(this.SkiaSharpPictureRecorderModel));
         }
 
         private void OnPropertyChanged(string propertyName)

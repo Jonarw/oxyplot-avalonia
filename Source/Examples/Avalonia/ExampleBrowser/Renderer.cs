@@ -5,5 +5,6 @@
         Canvas,
         SkiaSharp,
         SkiaSharpDoubleBuffered,
+        SkiaSharpRecorder,
     }
 }
